@@ -44,7 +44,6 @@ getDepartments = () => {
         departmentsArray.push(department.title);
       }
     });
-    console.log(departmentsArray);
   });
 };
 
@@ -100,7 +99,6 @@ viewAllEmployees = () => {
     res.forEach(employee => {
       console.log(employee.first_name + " " + employee.last_name);
     });
-    connection.end();
   });
   proceed("viewAll");
 };
@@ -113,20 +111,26 @@ viewAllEmpByDept = () => {
       message: "Please choose a department.",
       choices: departmentsArray
     })
-    .then(function() {
-      console.log("hello");
-      // res.forEach(employee => {
-      //   console.log(
-      //     employee.first_name + " " + employee.last_name + " , " + department
-      //   );
-      // });
+    .then(function({action}) {
+      connection.query("SELECT * FROM employee INNER JOIN department WHERE title LIKE ?", action, function(err, res){
+        if (err) throw err;
+        res.forEach(employee => {
+          console.log(employee.first_name + " " + employee.last_name + " " + employee.title);
+        });
+      })
+      // console.log(action);
+      // Some kind of join logic will probably
+      // have to go here to pull all this data 
+      // together properly.
+      connection.end();
+      proceed("viewAllEmpByDept");
     });
-  connection.end();
 };
 
 proceed = fromState => {
   switch (fromState) {
     case "viewAll":
+    case "viewAllEmpByDept":
       inquirer
         .prompt({
           type: "list",
