@@ -12,6 +12,8 @@ const choices = [
   "Update Employee Manager"
 ];
 
+
+
 // Create connection to database
 const connection = mysql.createConnection({
   // First, identify host
@@ -34,8 +36,10 @@ connection.connect(function(err) {
 });
 
 const departmentsArray = [];
+const employeeArray = [];
+const roleArray = ["Developer", "HR Manager"];
 
-// Function to query database and gather all departments and add them to the departmentsArray. 
+// Function to query database and gather all departments and add them to the departmentsArray.
 getDepartments = () => {
   connection.query("SELECT * FROM department", function(err, result) {
     if (err) throw err;
@@ -47,7 +51,25 @@ getDepartments = () => {
   });
 };
 
+getEmployees = () => {
+  connection.query("SELECT * FROM employee", function(err, result) {
+    if (err) throw err;
+    result.forEach(employee => {
+      if (!employeeArray.includes(employee.id)) {
+        employeeArray.push({
+          name: employee.first_name + " " + employee.last_name,
+          id: employee.id,
+          role: employee.role_id,
+          manager: employee.manager_id
+        });
+      }
+    });
+    // console.log(employeeArray)
+  });
+};
+
 getDepartments();
+getEmployees();
 
 promptUser = () => {
   inquirer
@@ -111,19 +133,93 @@ viewAllEmpByDept = () => {
       message: "Please choose a department.",
       choices: departmentsArray
     })
-    .then(function({action}) {
-      connection.query("SELECT * FROM employee INNER JOIN department WHERE title LIKE ?", action, function(err, res){
-        if (err) throw err;
-        res.forEach(employee => {
-          console.log(employee.first_name + " " + employee.last_name + " " + employee.title);
-        });
-      })
+    .then(function({ action }) {
+      connection.query(
+        "SELECT * FROM employee INNER JOIN department WHERE title LIKE ?",
+        action,
+        function(err, res) {
+          if (err) throw err;
+          res.forEach(employee => {
+            console.log(
+              employee.first_name +
+                " | " +
+                employee.last_name +
+                " | " +
+                employee.title
+            );
+          });
+        }
+      );
+
+      // all employees of a certain department
       // console.log(action);
       // Some kind of join logic will probably
-      // have to go here to pull all this data 
+      // have to go here to pull all this data
       // together properly.
       connection.end();
       proceed("viewAllEmpByDept");
+    });
+};
+
+// Function to view all employees by manager
+viewAllEmpByManager = () => {
+  inquirer
+    .prompt({
+      type: "list",
+      name: "manager",
+      message: "Please select the manager's name.",
+      choices: employeeArray
+    })
+    .then(function({ manager }) {
+      console.log(manager.id);
+      // connection.query("SELECT * FROM employee WHERE manager LIKE ?")
+    });
+};
+
+addEmployee = () => {
+  inquirer
+    .prompt([
+      {
+        type: "input",
+        message: "Please enter the employee's first name.",
+        name: "employeeFirstName"
+      },
+      {
+        type: "input",
+        message: "Please enter the employee's last name.",
+        name: "employeeLastName"
+      },
+      {
+        type: "list",
+        message: "Please select the employee's role.",
+        name: "employeeRole",
+        choices: roleArray
+      },
+      {
+        type: "list",
+        message: "Please select the employee's manager.",
+        name: "employeeManager",
+        choices: employeeArray
+      }
+    ])
+    // currently the above successfully gets all information
+    .then(function({
+      employeeFirstName,
+      employeeLastName,
+      employeeRole,
+      employeeManager
+    }) {
+      connection.query(
+        "INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?);",
+        [employeeFirstName, employeeLastName, employeeRole, employeeManager],
+        function(err, res){
+          if (err) throw err;
+          connection.query("SELECT * FROM employee", function(err, result){
+            if (err) throw err;
+            console.log(result);
+          })
+        }
+      );
     });
 };
 
