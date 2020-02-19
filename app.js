@@ -12,17 +12,10 @@ const choices = [
 
 // Create connection to database
 const connection = mysql.createConnection({
-  // First, identify host
   host: "localhost",
-
-  // Next, identify port
   port: 3306,
-
-  // Next, credentials
   user: "root",
   password: "rootroot",
-
-  // Provide database name
   database: "employeetracker_db"
 });
 
@@ -37,35 +30,53 @@ const roleArray = [];
 
 // Function to query database and gather all departments and add them to the departmentsArray.
 getDepartments = () => {
-  connection.query("SELECT * FROM department", function(err, result) {
+  connection.query("SELECT DISTINCT title FROM department", function(err, result) {
     if (err) throw err;
     result.forEach(department => {
-      if (!departmentsArray.includes(department.title)) {
         departmentsArray.push(department.title);
-      }
     });
   });
 };
 
 getEmployees = () => {
-  connection.query("SELECT * FROM employee", function(err, result) {
-    if (err) throw err;
-    result.forEach(employee => {
-      if (!employeeArray.includes(employee.id)) {
-        employeeArray.push({
-          name: employee.first_name + " " + employee.last_name,
-          id: employee.id,
-          role: employee.role_id,
-          manager: employee.manager_id
-        });
-      }
-    });
-  });
+  connection.query("SELECT * FROM employee GROUP BY id", function(err, result){
+    if(err) throw err;
+    console.log(result);
+  })
+  // connection.query("SELECT * FROM employee", function(err, result) {
+  //   if (err) throw err;
+  //   result.forEach(employee => {
+  //     if (!employeeArray.includes(employee.id)) {
+  //       employeeArray.push({
+  //         name: employee.first_name + " " + employee.last_name,
+  //         id: employee.id,
+  //         role: employee.role_id,
+  //         manager: employee.manager_id
+  //       });
+  //     }
+  //   });
+  // });
 };
 
 // TODO getRoles();
 
-getDepartments();
+getRoles = () => {
+  connection.query("SELECT * FROM role", function(err, result){
+    if (err) throw err;
+    result.forEach(role => {
+      if(!roleArray.includes(role.id)){
+        roleArray.push({
+          id: role.id,
+          title: role.title,
+          salary: role.salary,
+          department_id: role.department_id
+        })
+      }
+    })
+  })
+}
+
+// getDepartments();
 getEmployees();
 // getRoles();
 
@@ -105,11 +116,8 @@ begin = () => {
 };
 
 viewAllEmployees = () => {
-  connection.query("SELECT * FROM employee", function(err, res) {
-    if (err) throw err;
-    res.forEach(employee => {
-      console.log(employee.first_name + " " + employee.last_name);
-    });
+  employeeArray.forEach(employee => {
+    console.log(employee.name);
   });
   proceed("viewAll");
 };
@@ -126,6 +134,14 @@ viewAllDepartments = () => {
 }
 
 viewAllRoles = () => {
+  connection.query("SELECT DISTINCT title FROM role", function(err, res){
+    if (err) throw err;
+    console.log("Roles:" );
+    res.forEach(role => {
+      console.log(role.title);
+    })
+    connection.end();
+  })
   
 }
 // TODO Function to view all employees by department
