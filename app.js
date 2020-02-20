@@ -118,8 +118,18 @@ begin = () => {
 };
 
 viewAllEmployees = () => {
-  employeeArray.forEach(employee => {
-    console.log(employee.name);
+  connection.query("SELECT * FROM employee", function(err, res) {
+    if (err) throw err;
+    tableData = [];
+    res.forEach(employee => {
+      tableData.push([
+        employee.id,
+        employee.first_name + " " + employee.last_name
+      ]);
+    });
+    output = table(tableData, config);
+    console.log(output);
+    connection.end();
   });
   proceed("viewAll");
 };
@@ -135,6 +145,7 @@ viewAllDepartments = () => {
     console.log(output);
     connection.end();
   });
+  proceed("viewAll");
 };
 
 viewAllRoles = () => {
@@ -148,6 +159,7 @@ viewAllRoles = () => {
     console.log(output);
     connection.end();
   });
+  proceed("viewAll");
 };
 
 updateEmployee = () => {
@@ -166,7 +178,6 @@ updateEmployee = () => {
 };
 
 addEmployee = () => {
-  console.log(roleArray);
   inquirer
     .prompt([
       {
@@ -192,13 +203,14 @@ addEmployee = () => {
         choices: employeeArray
       }
     ])
-    // currently the above successfully gets all information
     .then(function({
       employeeFirstName,
       employeeLastName,
       employeeRole,
       employeeManager
     }) {
+      // Due to the way inquirer handles response objects, setting new variables to translate employeeRole and
+      // employeeManager into their corresponding IDs.
       let roleId;
       let managerId;
       connection.query("SELECT * FROM role", function(err, res) {
@@ -211,33 +223,85 @@ addEmployee = () => {
         connection.query("SELECT * FROM employee", function(err, res) {
           if (err) throw err;
           res.forEach(employee => {
-            // console.log(employee.first_name + " " + employee.last_name);
-            if (employee.first_name + " " + employee.last_name === employeeManager) {
+            if (
+              employee.first_name + " " + employee.last_name ===
+              employeeManager
+            ) {
               managerId = employee.id;
             }
           });
-        connection.query(
-          "INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?);",
-          [employeeFirstName, employeeLastName, roleId, managerId],
-          function(err, res) {
-            if (err) throw err;
-          });
+          connection.query(
+            "INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?);",
+            [employeeFirstName, employeeLastName, roleId, managerId],
+            function(err, res) {
+              if (err) throw err;
+            }
+          );
+        });
       });
     });
-  // {
-  //   connection.query(
-  //     "INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?);",
-  //     [employeeFirstName, employeeLastName, employeeRole, employeeManager],
-  //     function(err, res) {
-  //       if (err) throw err;
-  //       connection.query("SELECT * FROM employee", function(err, result) {
-  //         if (err) throw err;
-  //         console.log(result);
-  //       });
-  //     }
-  //   );
-  // }
-});
+};
+
+addDepartment = () => {
+  inquirer.prompt([
+    {
+      type: "input",
+      message: "Please enter the name of the department you wish to create.",
+      name: "department"
+    }
+  ]).then(function(department){
+    // console.log(department);
+    connection.query("INSERT INTO department (title) VALUES ?;", JSON.stringify(department), function(err, res){
+      if (err) throw err;
+    })
+    console.log("Department successfully added.");
+    proceed("addDepartment");
+  });
+};
+
+proceed = fromState => {
+  switch (fromState) {
+    case "viewAll":
+      inquirer
+        .prompt({
+          type: "list",
+          name: "action",
+          question: "What would you like to do?",
+          choices: ["Main Menu", "Exit"]
+        })
+        .then(function({ action }) {
+          switch (action) {
+            case "Main Menu":
+              begin();
+              return;
+            case "Exit":
+              console.log("Exiting...");
+              return;
+          }
+        });
+        return;
+    case "addDepartment":
+      inquirer.prompt({
+        type: "list", 
+        name: "action",
+        question: "What would you like to do?",
+        choices: ["Add another department", "Main Menu", "Exit"]
+      }).then(function({action}){
+        switch (action){
+          case "Add another department":
+            addDepartment();
+            return;
+          case "Main Menu":
+            begin();
+            return;
+          case "Exit":
+            console.log("Exiting...");
+            return;
+        }
+      });
+      return;
+  }
+};
 
 // TODO Function to view all employees by department
 // viewAllEmpByDept = () => {
@@ -350,27 +414,3 @@ addEmployee = () => {
 //     console.log(response);
 //   })
 // }
-
-proceed = fromState => {
-  switch (fromState) {
-    case "viewAll":
-    case "viewAllEmpByDept":
-      inquirer
-        .prompt({
-          type: "list",
-          name: "action",
-          question: "What would you like to do?",
-          choices: ["Main Menu", "Exit"]
-        })
-        .then(function({ action }) {
-          switch (action) {
-            case "Main Menu":
-              begin();
-              return;
-            case "Exit":
-              console.log("Exiting...");
-              return;
-          }
-        });
-  }
-}};
