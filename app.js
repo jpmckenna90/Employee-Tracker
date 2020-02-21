@@ -250,8 +250,7 @@ addDepartment = () => {
       name: "department"
     }
   ]).then(function(department){
-    // console.log(department);
-    connection.query("INSERT INTO department (title) VALUES ?;", JSON.stringify(department), function(err, res){
+    connection.query("INSERT INTO department (title) VALUES (?);", [department.department], function(err, res){
       if (err) throw err;
     })
     console.log("Department successfully added.");
